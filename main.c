@@ -1,13 +1,32 @@
-#include <pcap/pcap.h>
+#include <arpa/inet.h>
+#include <net/ethernet.h>
+#include <netinet/ip.h>
+#include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 // will handle each packet
-void packet_handler(unsigned char *args, const struct pcap_pkthdr *header,
-                    const unsigned char *packet) {
+void packet_handler(u_char *args, const struct pcap_pkthdr *header,
+                    const u_char *packet) {
   int i;
+  struct ether_header *eth;
+  eth = (struct ether_header *)packet;
+  packet += sizeof(struct ether_header);
+
+  uint16_t eth_type = htons(eth->ether_type);
+
+  if (eth_type == ETHERTYPE_IP) {
+    struct ip *ip_header = (struct ip *)packet;
+    printf(" ╞══════════════════ IP ═══════════════════\n");
+    printf(" ├ version         :   %d\n", ip_header->ip_v);
+    printf(" ├ header length   :   %d\n", ip_header->ip_hl);
+    printf(" ├ TTL             :   %d\n", ip_header->ip_ttl);
+    printf(" ├ source          :   %s\n", inet_ntoa(ip_header->ip_src));
+    printf(" ├ destination     :   %s\n", inet_ntoa(ip_header->ip_dst));
+  }
+
   printf("got packet with length=%d\n", header->len);
 
   // for the moment print the content of the packet (output can be strange)
