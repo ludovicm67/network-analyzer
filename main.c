@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <net/ethernet.h>
+#include <netinet/ether.h>
 #include <netinet/ip.h>
 #include <pcap.h>
 #include <stdio.h>
@@ -11,14 +12,29 @@
 void packet_handler(u_char *args, const struct pcap_pkthdr *header,
                     const u_char *packet) {
   int i;
+  int consumed_size;
   struct ether_header *eth;
   eth = (struct ether_header *)packet;
   packet += sizeof(struct ether_header);
 
+  consumed_size = sizeof(struct ether_header);
+
   uint16_t eth_type = htons(eth->ether_type);
+
+  printf("\n\ngot packet with length=%d :\n", header->len);
+
+  printf(" ╒═══════════════ ETHERNET ════════════════\n");
+  printf(" ├ source          :   %s\n",
+         ether_ntoa((const struct ether_addr *)eth->ether_shost));
+  printf(" ├ destination     :   %s\n",
+         ether_ntoa((const struct ether_addr *)eth->ether_dhost));
 
   if (eth_type == ETHERTYPE_IP) {
     struct ip *ip_header = (struct ip *)packet;
+    packet += sizeof(struct ip);
+
+    consumed_size += sizeof(struct ip);
+
     printf(" ╞══════════════════ IP ═══════════════════\n");
     printf(" ├ version         :   %d\n", ip_header->ip_v);
     printf(" ├ header length   :   %d\n", ip_header->ip_hl);
@@ -27,10 +43,8 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
     printf(" ├ destination     :   %s\n", inet_ntoa(ip_header->ip_dst));
   }
 
-  printf("got packet with length=%d\n", header->len);
-
   // for the moment print the content of the packet (output can be strange)
-  for (i = 0; i < header->len; i++) {
+  for (i = 0; i < header->len - consumed_size; i++) {
     printf("%c", packet[i]);
   }
   printf("\n");
