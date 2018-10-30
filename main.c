@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 void handle_ip(const u_char *packet) {
@@ -38,6 +39,15 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
   int i;
   int consumed_size;
   struct ether_header *eth;
+
+  char formatted_time[50];
+  time_t rawtime;
+  struct tm *timeinfo;
+
+  time(&rawtime);
+  timeinfo = localtime(&rawtime);
+  strftime(formatted_time, 50, "[%F %T]", timeinfo);
+
   eth = (struct ether_header *)packet;
   packet += sizeof(struct ether_header);
 
@@ -45,7 +55,7 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
 
   uint16_t eth_type = htons(eth->ether_type);
 
-  printf("\n\ngot packet with length=%d :\n", header->len);
+  printf("\n\n %s length=%d:\n", formatted_time, header->len);
 
   printf(" ╒═══════════════ ETHERNET ════════════════\n");
   printf(" ├ source          :   %s\n",
