@@ -2,11 +2,35 @@
 #include <net/ethernet.h>
 #include <netinet/ether.h>
 #include <netinet/ip.h>
+#include <netinet/ip6.h>
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+void handle_ip(const u_char *packet) {
+  struct ip *ip_header = (struct ip *)packet;
+  packet += sizeof(struct ip);
+
+  printf(" ╞══════════════════ IP ═══════════════════\n");
+  printf(" ├ version         :   %d\n", ip_header->ip_v);
+  printf(" ├ header length   :   %d\n", ip_header->ip_hl);
+  printf(" ├ TTL             :   %d\n", ip_header->ip_ttl);
+  printf(" ├ source          :   %s\n", inet_ntoa(ip_header->ip_src));
+  printf(" ├ destination     :   %s\n", inet_ntoa(ip_header->ip_dst));
+}
+
+void handle_ip6(const u_char *packet) {
+  struct ip6_hdr *ip6_header = (struct ip6_hdr *)packet;
+  packet += sizeof(struct ip6_hdr);
+
+  printf(" ╞═════════════════ IPv6 ══════════════════\n");
+}
+
+void handle_arp(const u_char *packet) {
+  printf(" ╞═════════════════ ARP ═══════════════════\n");
+}
 
 // will handle each packet
 void packet_handler(u_char *args, const struct pcap_pkthdr *header,
@@ -29,25 +53,34 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
   printf(" ├ destination     :   %s\n",
          ether_ntoa((const struct ether_addr *)eth->ether_dhost));
 
-  if (eth_type == ETHERTYPE_IP) {
-    struct ip *ip_header = (struct ip *)packet;
+  switch (eth_type) {
+  case ETHERTYPE_IP:
+    handle_ip(packet);
     packet += sizeof(struct ip);
-
     consumed_size += sizeof(struct ip);
+    break;
 
-    printf(" ╞══════════════════ IP ═══════════════════\n");
-    printf(" ├ version         :   %d\n", ip_header->ip_v);
-    printf(" ├ header length   :   %d\n", ip_header->ip_hl);
-    printf(" ├ TTL             :   %d\n", ip_header->ip_ttl);
-    printf(" ├ source          :   %s\n", inet_ntoa(ip_header->ip_src));
-    printf(" ├ destination     :   %s\n", inet_ntoa(ip_header->ip_dst));
+  case ETHERTYPE_IPV6:
+    handle_ip6(packet);
+    packet += sizeof(struct ip6_hdr);
+    consumed_size += sizeof(struct ip6_hdr);
+    break;
+
+  case ETHERTYPE_ARP:
+    handle_arp(packet);
+    break;
+
+  default:
+    printf(" ╞══════════════════ ?? ═══════════════════\n");
+    break;
   }
+
+  printf(" ╘═════════════════════════════════════════\n");
 
   // for the moment print the content of the packet (output can be strange)
   for (i = 0; i < header->len - consumed_size; i++) {
     printf("%c", packet[i]);
   }
-  printf("\n");
 }
 
 // show the user how to run the program correctly
