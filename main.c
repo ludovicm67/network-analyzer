@@ -9,6 +9,42 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <ctype.h>
+
+void print_raw(const u_char *packet, int length) {
+  u_char c;
+  int i, j;
+
+  // display paquet by lines of size 16
+  for (j = 0; j < length + 16; j += 16) {
+    if (j >= length) break;
+    printf("  %04x  ", j);
+
+    // display in hex form
+    for (i = j; i < j + 16 && i < length; i++) {
+      printf("%02x ", packet[i]);
+      if (i == j + 7) printf(" ");
+    }
+
+    // add missing spaces if needed
+    for (; i < j + 16; i++) {
+      printf("   ");
+      if (i == j + 7) printf(" ");
+    }
+
+    printf(" ");
+
+    // display all ASCII characters
+    for (i = j; i < j + 16 && i < length; i++) {
+      c = packet[i];
+      if (isprint(c)) printf("%c", c);
+      else printf(".");
+      if (i == j + 7) printf(" ");
+    }
+
+    printf("\n");
+  }
+}
 
 void handle_ip(const u_char *packet) {
   struct ip *ip_header = (struct ip *)packet;
@@ -40,13 +76,13 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
   int consumed_size;
   struct ether_header *eth;
 
-  char formatted_time[50];
+  char formatted_time[22];
   time_t rawtime;
   struct tm *timeinfo;
 
   time(&rawtime);
   timeinfo = localtime(&rawtime);
-  strftime(formatted_time, 50, "[%F %T]", timeinfo);
+  strftime(formatted_time, 22, "[%F %T]", timeinfo);
 
   eth = (struct ether_header *)packet;
   packet += sizeof(struct ether_header);
@@ -56,6 +92,8 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
   uint16_t eth_type = htons(eth->ether_type);
 
   printf("\n\n %s length=%d:\n", formatted_time, header->len);
+
+  print_raw(packet, header->len);
 
   printf(" ╒═══════════════ ETHERNET ════════════════\n");
   printf(" ├ source          :   %s\n",
@@ -86,11 +124,6 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
   }
 
   printf(" ╘═════════════════════════════════════════\n");
-
-  // for the moment print the content of the packet (output can be strange)
-  for (i = 0; i < header->len - consumed_size; i++) {
-    printf("%c", packet[i]);
-  }
 }
 
 // show the user how to run the program correctly
