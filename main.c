@@ -99,7 +99,31 @@ void handle_ip6(const u_char *packet, int length) {
   struct ip6_hdr *ip6_header = (struct ip6_hdr *)packet;
   packet += sizeof(struct ip6_hdr);
 
+  char src[INET6_ADDRSTRLEN];
+  char dst[INET6_ADDRSTRLEN];
+  inet_ntop(AF_INET6, &ip6_header->ip6_src, src, INET6_ADDRSTRLEN);
+  inet_ntop(AF_INET6, &ip6_header->ip6_dst, dst, INET6_ADDRSTRLEN);
+
+  u_int8_t next = ip6_header->ip6_ctlun.ip6_un1.ip6_un1_nxt;
+  u_int16_t len = htons(ip6_header->ip6_ctlun.ip6_un1.ip6_un1_plen);
+
   printf(" ╞═════════════════ IPv6 ══════════════════\n");
+  printf(" ├ source          :   %s\n", src);
+  printf(" ├ destination     :   %s\n", dst);
+  printf(" ├ next header     :   %d\n", next);
+  printf(" ├ payload length  :   %d\n", len);
+
+  switch (next) {
+    case 6:
+      handle_tcp(packet, length - len);
+      break;
+    case 17:
+      handle_udp(packet, length - len);
+      break;
+    default:
+      // do nothing
+      break;
+  }
 }
 
 void handle_arp(const u_char *packet, int length) {
@@ -183,6 +207,7 @@ int main(int argc, char *argv[]) {
 
   has_filter = 0;
   nb_errors = 0;
+  device = "any";
 
   // parse options
   while ((c = getopt(argc, argv, "+i:f:")) != EOF) {
