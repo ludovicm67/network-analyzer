@@ -2,6 +2,8 @@
 #include <net/ethernet.h>
 #include <netinet/ether.h>
 #include <netinet/ip.h>
+#include <netinet/udp.h>
+#include <netinet/tcp.h>
 #include <netinet/ip6.h>
 #include <pcap.h>
 #include <stdio.h>
@@ -18,7 +20,7 @@ void print_raw(const u_char *packet, int length) {
   // display paquet by lines of size 16
   for (j = 0; j < length + 16; j += 16) {
     if (j >= length) break;
-    printf("  %04x  ", j);
+    printf("  %04x   ", j);
 
     // display in hex form
     for (i = j; i < j + 16 && i < length; i++) {
@@ -32,7 +34,7 @@ void print_raw(const u_char *packet, int length) {
       if (i == j + 7) printf(" ");
     }
 
-    printf(" ");
+    printf("  ");
 
     // display all ASCII characters
     for (i = j; i < j + 16 && i < length; i++) {
@@ -46,26 +48,61 @@ void print_raw(const u_char *packet, int length) {
   }
 }
 
-void handle_ip(const u_char *packet) {
+void handle_udp(const u_char *packet, int length) {
+  struct udphdr *udp_header = (struct udphdr *) packet;
+  packet += sizeof(struct udphdr);
+
+  printf(" ╞═════════════════ UDP ═══════════════════\n");
+  printf(" ├ source port     :   %d\n", ntohs(udp_header->uh_sport));
+  printf(" ├ dest port       :   %d\n", ntohs(udp_header->uh_dport));
+  printf(" ├ length          :   %d\n", ntohs(udp_header->uh_ulen));
+
+}
+
+void handle_tcp(const u_char *packet, int length) {
+  struct tcphdr *tcp_header = (struct tcphdr *) packet;
+  packet += sizeof(struct tcphdr);
+
+  printf(" ╞═════════════════ TCP ═══════════════════\n");
+  printf(" ├ source port     :   %d\n", ntohs(tcp_header->th_sport));
+  printf(" ├ dest port       :   %d\n", ntohs(tcp_header->th_dport));
+
+}
+
+void handle_ip(const u_char *packet, int length) {
   struct ip *ip_header = (struct ip *)packet;
-  packet += sizeof(struct ip);
+  int ip_size = ip_header->ip_hl * 4;
+  packet += ip_size;
 
   printf(" ╞══════════════════ IP ═══════════════════\n");
   printf(" ├ version         :   %d\n", ip_header->ip_v);
   printf(" ├ header length   :   %d\n", ip_header->ip_hl);
   printf(" ├ TTL             :   %d\n", ip_header->ip_ttl);
+  printf(" ├ Protocol        :   %d\n", ip_header->ip_p);
   printf(" ├ source          :   %s\n", inet_ntoa(ip_header->ip_src));
   printf(" ├ destination     :   %s\n", inet_ntoa(ip_header->ip_dst));
+
+  switch (ip_header->ip_p) {
+    case 6:
+      handle_tcp(packet, length - ip_size);
+      break;
+    case 17:
+      handle_udp(packet, length - ip_size);
+      break;
+    default:
+      // do nothing
+      break;
+  }
 }
 
-void handle_ip6(const u_char *packet) {
+void handle_ip6(const u_char *packet, int length) {
   struct ip6_hdr *ip6_header = (struct ip6_hdr *)packet;
   packet += sizeof(struct ip6_hdr);
 
   printf(" ╞═════════════════ IPv6 ══════════════════\n");
 }
 
-void handle_arp(const u_char *packet) {
+void handle_arp(const u_char *packet, int length) {
   printf(" ╞═════════════════ ARP ═══════════════════\n");
 }
 
@@ -103,19 +140,19 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
 
   switch (eth_type) {
   case ETHERTYPE_IP:
-    handle_ip(packet);
-    packet += sizeof(struct ip);
     consumed_size += sizeof(struct ip);
+    handle_ip(packet, header->len - consumed_size);
+    packet += sizeof(struct ip);
     break;
 
   case ETHERTYPE_IPV6:
-    handle_ip6(packet);
-    packet += sizeof(struct ip6_hdr);
     consumed_size += sizeof(struct ip6_hdr);
+    handle_ip6(packet, header->len - consumed_size);
+    packet += sizeof(struct ip6_hdr);
     break;
 
   case ETHERTYPE_ARP:
-    handle_arp(packet);
+    handle_arp(packet, header->len - consumed_size);
     break;
 
   default:
