@@ -19,6 +19,20 @@ void handle_tcp(const u_char *packet) {
     printf(" ├ source port     :   %d\n", src);
     printf(" ├ dest port       :   %d\n", dst);
     printf(" ├ length          :   %d\n", len);
+    printf(" ├ flags           :   ");
+    if (tcp_header->th_flags & TH_FIN)
+      printf("FIN ");
+    if (tcp_header->th_flags & TH_SYN)
+      printf("SYN ");
+    if (tcp_header->th_flags & TH_RST)
+      printf("RST ");
+    if (tcp_header->th_flags & TH_PUSH)
+      printf("PUSH ");
+    if (tcp_header->th_flags & TH_ACK)
+      printf("ACK ");
+    if (tcp_header->th_flags & TH_URG)
+      printf("URG ");
+    printf("\n");
   }
 
   if (src == 21 || dst == 21) {

@@ -3,7 +3,6 @@
 
 #include <arpa/inet.h>
 
-void handle_bootp(const u_char *packet);
 void handle_dhcp(const u_char *packet);
 void handle_dns(const u_char *packet);
 void handle_http(const u_char *packet);

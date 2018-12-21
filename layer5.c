@@ -1,18 +1,22 @@
+#include "bootp.h"
 #include "layer3.h"
 #include "layer4.h"
 #include "network_analyzer.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-void handle_bootp(__attribute__((unused)) const u_char *packet) {}
-
 void handle_dhcp(const u_char *packet) {
+  struct bootp *bootp = (struct bootp *)packet;
   if (na_state.verbose == 1)
-    printf(" » DHCP");
+    printf(" » BOOTP / DHCP");
   if (na_state.verbose > 1) {
     u_int8_t dhcp = (u_int8_t) * (packet + 240);
     u_int8_t type = (u_int8_t) * (packet + 242);
-    printf(" ╞══════════════════ DHCP ═════════════════\n");
+    printf(" ╞══════════════ BOOTP / DHCP ═════════════\n");
+    if (bootp->bp_op == 1)
+      printf(" ├ op : BOOTREQUEST\n");
+    if (bootp->bp_op == 2)
+      printf(" ├ op : BOOTREPLY\n");
     if (dhcp == 53) {
       switch (type) {
       case 1:
