@@ -4,17 +4,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// void handle_bootp(const u_char *packet) {
+void handle_bootp(__attribute__((unused)) const u_char *packet) {}
 
-// }
+void handle_dhcp(const u_char *packet) {
+  if (na_state.verbose == 1)
+    printf(" » DHCP");
+  if (na_state.verbose > 1) {
+    u_int8_t dhcp = (u_int8_t) * (packet + 240);
+    u_int8_t type = (u_int8_t) * (packet + 242);
+    printf(" ╞══════════════════ DHCP ═════════════════\n");
+    if (dhcp == 53) {
+      switch (type) {
+      case 1:
+        printf(" ├ message type : Discover\n");
+        break;
+      case 2:
+        printf(" ├ message type : Offer\n");
+        break;
+      case 3:
+        printf(" ├ message type : Request\n");
+        break;
+      case 5:
+        printf(" ├ message type : ACK\n");
+        break;
+      }
+    }
+  }
+}
 
-// void handle_dhcp(const u_char *packet) {
-
-// }
-
-// void handle_dns(const u_char *packet) {
-
-// }
+void handle_dns(__attribute__((unused)) const u_char *packet) {
+  if (na_state.verbose == 1)
+    printf(" » DNS");
+  if (na_state.verbose > 1) {
+    printf(" ╞══════════════════ DNS ══════════════════\n");
+  }
+}
 
 void handle_http(const u_char *packet) {
   if (na_state.verbose == 1)

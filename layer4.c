@@ -47,4 +47,10 @@ void handle_udp(const u_char *packet) {
     printf(" ├ dest port       :   %d\n", dst);
     printf(" ├ length          :   %d\n", ntohs(udp_header->uh_ulen));
   }
+
+  if (src == 53 || dst == 53) {
+    handle_dns(packet);
+  } else if (src == 67 || dst == 67 || src == 68 || dst == 68) {
+    handle_dhcp(packet);
+  }
 }
