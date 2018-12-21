@@ -179,6 +179,38 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
     handle_arp(packet, header->len - consumed_size);
     break;
 
+  case ETHERTYPE_PUP:
+    printf(" ╞══ Proto = PUP\n");
+    break;
+
+  case ETHERTYPE_SPRITE:
+    printf(" ╞══ Proto = Sprite\n");
+    break;
+
+  case ETHERTYPE_REVARP:
+    printf(" ╞══ Proto = Reverse ARP\n");
+    break;
+
+  case ETHERTYPE_AT:
+    printf(" ╞══ Proto = AppleTalk protocol\n");
+    break;
+
+  case ETHERTYPE_AARP:
+    printf(" ╞══ Proto = AppleTalk ARP\n");
+    break;
+
+  case ETHERTYPE_VLAN:
+    printf(" ╞══ Proto = IEEE 802.1Q VLAN tagging\n");
+    break;
+
+  case ETHERTYPE_IPX:
+    printf(" ╞══ Proto = IPX\n");
+    break;
+
+  case ETHERTYPE_LOOPBACK:
+    printf(" ╞══ Proto = loopback, used to test interfaces\n");
+    break;
+
   default:
     printf(" ╞══════════════════ ?? ═══════════════════\n");
     break;
