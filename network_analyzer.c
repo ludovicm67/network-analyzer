@@ -1,6 +1,4 @@
 #include <arpa/inet.h>
-#include <net/ethernet.h>
-#include <netinet/ether.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <netinet/tcp.h>
@@ -12,6 +10,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <ctype.h>
+#include "network_analyzer.h"
+#include "level2.h"
 
 void print_raw(const u_char *packet, int length) {
   u_char c;
@@ -129,8 +129,6 @@ void handle_ip6(const u_char *packet, int length) {
 // will handle each packet
 void packet_handler(__attribute__((unused)) u_char *args, const struct pcap_pkthdr *header,
                     const u_char *packet) {
-  int consumed_size;
-  struct ether_header *eth;
 
   char formatted_time[22];
   time_t rawtime;
@@ -140,78 +138,12 @@ void packet_handler(__attribute__((unused)) u_char *args, const struct pcap_pkth
   timeinfo = localtime(&rawtime);
   strftime(formatted_time, 22, "[%F %T]", timeinfo);
 
-  eth = (struct ether_header *)packet;
-  packet += sizeof(struct ether_header);
+  if (na_state.verbose > 1) printf("\n");
+  printf("\n %s length=%d:", formatted_time, header->len);
+  if (na_state.verbose > 1) printf("\n");
+  if (na_state.verbose == 3) print_raw(packet, header->len);
 
-  consumed_size = sizeof(struct ether_header);
-
-  uint16_t eth_type = htons(eth->ether_type);
-
-  printf("\n\n %s length=%d:\n", formatted_time, header->len);
-
-  print_raw(packet, header->len);
-
-  printf(" ╒═══════════════ ETHERNET ════════════════\n");
-  printf(" ├ source          :   %s\n",
-         ether_ntoa((const struct ether_addr *)eth->ether_shost));
-  printf(" ├ destination     :   %s\n",
-         ether_ntoa((const struct ether_addr *)eth->ether_dhost));
-
-  switch (eth_type) {
-  case ETHERTYPE_IP:
-    consumed_size += sizeof(struct ip);
-    handle_ip(packet, header->len - consumed_size);
-    packet += sizeof(struct ip);
-    break;
-
-  case ETHERTYPE_IPV6:
-    consumed_size += sizeof(struct ip6_hdr);
-    handle_ip6(packet, header->len - consumed_size);
-    packet += sizeof(struct ip6_hdr);
-    break;
-
-  case ETHERTYPE_PUP:
-    printf(" ╞══ Proto = PUP\n");
-    break;
-
-  case ETHERTYPE_SPRITE:
-    printf(" ╞══ Proto = Sprite\n");
-    break;
-
-  case ETHERTYPE_ARP:
-    printf(" ╞══ Proto = ARP, Address resolution\n");
-    break;
-
-  case ETHERTYPE_REVARP:
-    printf(" ╞══ Proto = Reverse ARP\n");
-    break;
-
-  case ETHERTYPE_AT:
-    printf(" ╞══ Proto = AppleTalk protocol\n");
-    break;
-
-  case ETHERTYPE_AARP:
-    printf(" ╞══ Proto = AppleTalk ARP\n");
-    break;
-
-  case ETHERTYPE_VLAN:
-    printf(" ╞══ Proto = IEEE 802.1Q VLAN tagging\n");
-    break;
-
-  case ETHERTYPE_IPX:
-    printf(" ╞══ Proto = IPX\n");
-    break;
-
-  case ETHERTYPE_LOOPBACK:
-    printf(" ╞══ Proto = loopback, used to test interfaces\n");
-    break;
-
-  default:
-    printf(" ╞══════════════════ ?? ═══════════════════\n");
-    break;
-  }
-
-  printf(" ╘═════════════════════════════════════════\n");
+  handle_ethernet(packet);
 }
 
 // show the user how to run the program correctly
