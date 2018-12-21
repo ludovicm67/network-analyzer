@@ -1,1 +1,3 @@
-main
+network_analyzer
+*.o
+*.d

@@ -48,7 +48,7 @@ void print_raw(const u_char *packet, int length) {
   }
 }
 
-void handle_udp(const u_char *packet, int length) {
+void handle_udp(const u_char *packet, __attribute__((unused)) int length) {
   struct udphdr *udp_header = (struct udphdr *) packet;
   packet += sizeof(struct udphdr);
 
@@ -59,7 +59,7 @@ void handle_udp(const u_char *packet, int length) {
 
 }
 
-void handle_tcp(const u_char *packet, int length) {
+void handle_tcp(const u_char *packet, __attribute__((unused)) int length) {
   struct tcphdr *tcp_header = (struct tcphdr *) packet;
   packet += sizeof(struct tcphdr);
 
@@ -126,14 +126,9 @@ void handle_ip6(const u_char *packet, int length) {
   }
 }
 
-void handle_arp(const u_char *packet, int length) {
-  printf(" ╞═════════════════ ARP ═══════════════════\n");
-}
-
 // will handle each packet
-void packet_handler(u_char *args, const struct pcap_pkthdr *header,
+void packet_handler(__attribute__((unused)) u_char *args, const struct pcap_pkthdr *header,
                     const u_char *packet) {
-  int i;
   int consumed_size;
   struct ether_header *eth;
 
@@ -175,16 +170,16 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header,
     packet += sizeof(struct ip6_hdr);
     break;
 
-  case ETHERTYPE_ARP:
-    handle_arp(packet, header->len - consumed_size);
-    break;
-
   case ETHERTYPE_PUP:
     printf(" ╞══ Proto = PUP\n");
     break;
 
   case ETHERTYPE_SPRITE:
     printf(" ╞══ Proto = Sprite\n");
+    break;
+
+  case ETHERTYPE_ARP:
+    printf(" ╞══ Proto = ARP, Address resolution\n");
     break;
 
   case ETHERTYPE_REVARP:
