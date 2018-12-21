@@ -1,9 +1,6 @@
 #include "network_analyzer.h"
 #include "layer2.h"
-#include <arpa/inet.h>
 #include <ctype.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,25 +49,6 @@ void print_raw(const u_char *packet, int length) {
   }
 }
 
-void handle_udp(const u_char *packet, __attribute__((unused)) int length) {
-  struct udphdr *udp_header = (struct udphdr *)packet;
-  packet += sizeof(struct udphdr);
-
-  printf(" ╞═════════════════ UDP ═══════════════════\n");
-  printf(" ├ source port     :   %d\n", ntohs(udp_header->uh_sport));
-  printf(" ├ dest port       :   %d\n", ntohs(udp_header->uh_dport));
-  printf(" ├ length          :   %d\n", ntohs(udp_header->uh_ulen));
-}
-
-void handle_tcp(const u_char *packet, __attribute__((unused)) int length) {
-  struct tcphdr *tcp_header = (struct tcphdr *)packet;
-  packet += sizeof(struct tcphdr);
-
-  printf(" ╞═════════════════ TCP ═══════════════════\n");
-  printf(" ├ source port     :   %d\n", ntohs(tcp_header->th_sport));
-  printf(" ├ dest port       :   %d\n", ntohs(tcp_header->th_dport));
-}
-
 // will handle each packet
 void packet_handler(__attribute__((unused)) u_char *args,
                     const struct pcap_pkthdr *header, const u_char *packet) {
@@ -98,6 +76,7 @@ void packet_handler(__attribute__((unused)) u_char *args,
 void usage(char *program_name) {
   fprintf(stderr, "Usage: %s ", program_name);
   fprintf(stderr, "[-i device] ");
+  fprintf(stderr, "[-o file] ");
   fprintf(stderr, "[-v verbose 1-3] ");
   fprintf(stderr, "[-f filter]\n");
 
@@ -113,6 +92,8 @@ int main(int argc, char *argv[]) {
   pcap_t *session;
   struct bpf_program fp;
 
+  char *file = NULL;
+
   has_filter = 0;
   nb_errors = 0;
   device = "any";
@@ -120,7 +101,7 @@ int main(int argc, char *argv[]) {
   na_state.verbose = 1;
 
   // parse options
-  while ((c = getopt(argc, argv, "+i:f:v:")) != EOF) {
+  while ((c = getopt(argc, argv, "+i:f:v:o:")) != EOF) {
     switch (c) {
     case 'i':
       device = optarg;
@@ -131,6 +112,9 @@ int main(int argc, char *argv[]) {
       break;
     case 'v':
       na_state.verbose = atoi(optarg);
+      break;
+    case 'o':
+      file = optarg;
       break;
     case '?':
       nb_errors++;
@@ -143,39 +127,48 @@ int main(int argc, char *argv[]) {
     usage(argv[0]);
   }
 
-  // fetch all available devices
-  if (pcap_findalldevs(&devices, errbuf) == -1) {
-    perror("pcap_findalldevs failed");
-    exit(EXIT_FAILURE);
-  }
-
-  found = 0;
-  for (dev_tmp = devices; dev_tmp; dev_tmp = dev_tmp->next) {
-    if (!strcmp(dev_tmp->name, device)) {
-      found++;
-      break;
+  if (file == NULL) {
+    // fetch all available devices
+    if (pcap_findalldevs(&devices, errbuf) == -1) {
+      perror("pcap_findalldevs failed");
+      exit(EXIT_FAILURE);
     }
-  }
 
-  // free devices list
-  pcap_freealldevs(devices);
+    found = 0;
+    for (dev_tmp = devices; dev_tmp; dev_tmp = dev_tmp->next) {
+      if (!strcmp(dev_tmp->name, device)) {
+        found++;
+        break;
+      }
+    }
 
-  // check if device exists
-  if (!found) {
-    fprintf(stderr, "Device '%s' not found!\n", device);
-  }
+    // free devices list
+    pcap_freealldevs(devices);
 
-  // get device informations
-  if (pcap_lookupnet(device, &net, &mask, errbuf) == -1) {
-    fprintf(stderr, "Can't get netmask for device %s\n", device);
-    net = 0;
-    mask = 0;
-  }
+    // check if device exists
+    if (!found) {
+      fprintf(stderr, "Device '%s' not found!\n", device);
+    }
 
-  // open device for reading
-  if ((session = pcap_open_live(device, BUFSIZ, 0, -1, errbuf)) == NULL) {
-    fprintf(stderr, "Couldn't open device %s: %s\n", device, errbuf);
-    exit(EXIT_FAILURE);
+    // get device informations
+    if (pcap_lookupnet(device, &net, &mask, errbuf) == -1) {
+      fprintf(stderr, "Can't get netmask for device %s\n", device);
+      net = 0;
+      mask = 0;
+    }
+
+    // open device for reading
+    if ((session = pcap_open_live(device, BUFSIZ, 0, -1, errbuf)) == NULL) {
+      fprintf(stderr, "Couldn't open device %s: %s\n", device, errbuf);
+      exit(EXIT_FAILURE);
+    }
+  } else {
+    // open capture file for offline processing
+    session = pcap_open_offline(file, errbuf);
+    if (session == NULL) {
+      fprintf(stderr, "Cannot open file %s: %s\n", file, errbuf);
+      exit(EXIT_FAILURE);
+    }
   }
 
   // use filter if some are specified
@@ -198,6 +191,9 @@ int main(int argc, char *argv[]) {
 
   // close pcap session
   pcap_close(session);
+
+  if (na_state.verbose == 1)
+    printf("\n");
 
   return EXIT_SUCCESS;
 }

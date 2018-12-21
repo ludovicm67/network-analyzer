@@ -1,4 +1,5 @@
 #include "layer3.h"
+#include "layer4.h"
 #include "network_analyzer.h"
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
@@ -22,12 +23,12 @@ void handle_ip(const u_char *packet) {
   }
 
   switch (ip_header->ip_p) {
-  // case 6:
-  //   handle_tcp(packet, length - ip_size);
-  //   break;
-  // case 17:
-  //   handle_udp(packet, length - ip_size);
-  //   break;
+  case 6:
+    handle_tcp(packet);
+    break;
+  case 17:
+    handle_udp(packet);
+    break;
   default:
     // do nothing
     break;
@@ -58,10 +59,10 @@ void handle_ip6(const u_char *packet) {
 
   switch (next) {
   case 6:
-    // handle_tcp(packet);
+    handle_tcp(packet);
     break;
   case 17:
-    // handle_udp(packet);
+    handle_udp(packet);
     break;
   default:
     // do nothing
