@@ -21,7 +21,7 @@ format:
 
 .PHONY: run
 run:
-	@sudo ./$(BIN) -i lo
+	@sudo ./$(BIN) -i lo -v3
 
 .PHONY: clean
 clean:

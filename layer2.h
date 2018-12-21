@@ -1,6 +1,5 @@
-#ifndef __LEVEL2_H
-#define __LEVEL2_H
-
+#ifndef __LAYER2_H
+#define __LAYER2_H
 
 #include <arpa/inet.h>
 
