@@ -1,6 +1,7 @@
 #include "layer3.h"
 #include "layer4.h"
 #include "network_analyzer.h"
+#include <net/if_arp.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <stdio.h>
@@ -67,5 +68,22 @@ void handle_ip6(const u_char *packet) {
   default:
     // do nothing
     break;
+  }
+}
+
+void handle_arp(const u_char *packet) {
+  struct arphdr *arp_header = (struct arphdr *)packet;
+
+  if (na_state.verbose == 1)
+    printf(" » ARP, Adress resolution");
+  if (na_state.verbose > 1) {
+    printf(" ╞══ Proto = ARP, Adress resolution\n");
+    printf(" ├ hardware type  : %s\n",
+           (ntohs(arp_header->ar_hrd) == 1) ? "Ethernet" : "Unknown");
+    printf(" ├ protocol type  : %s\n",
+           (ntohs(arp_header->ar_pro) == 0x0800) ? "IPv4" : "Unknown");
+    printf(" ├ operation      : %s\n",
+           (ntohs(arp_header->ar_op) == ARPOP_REQUEST) ? "ARP Request"
+                                                       : "ARP Reply");
   }
 }

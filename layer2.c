@@ -48,10 +48,7 @@ void handle_ethernet(const u_char *packet) {
     break;
 
   case ETHERTYPE_ARP:
-    if (na_state.verbose == 1)
-      printf(" » ARP, Adress resolution");
-    if (na_state.verbose > 1)
-      printf(" ╞══ Proto = ARP, Adress resolution\n");
+    handle_arp(packet);
     break;
 
   case ETHERTYPE_REVARP:
