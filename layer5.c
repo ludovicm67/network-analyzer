@@ -38,7 +38,7 @@ void handle_http(const u_char *packet) {
       if (atoi((char *)msg))
         printf(" ├ code : %s\n", msg);
     } else {
-      printf(" ├ http content (following an other packet due to TCP "
+      printf(" ├ HTTP content (following an other packet due to TCP "
              "segmentation)\n");
     }
   }
@@ -66,7 +66,7 @@ void handle_https(const u_char *packet) {
       if (atoi((char *)msg))
         printf(" ├ code : %s\n", msg);
     } else {
-      printf(" ├ https content (following an other packet due to TCP "
+      printf(" ├ HTTPS content (following an other packet due to TCP "
              "segmentation)\n");
     }
   }
@@ -97,6 +97,30 @@ void handle_ftp_data(__attribute__((unused)) const u_char *packet) {
   }
 }
 
-// void handle_smtp(const u_char *packet) {
+void handle_smtp(const u_char *packet) {
+  u_char *msg = (u_char *)packet;
+  u_char *tmp = msg;
+  while (*tmp != '\n')
+    tmp++;
+  *tmp = '\0';
 
-// }
+  if (na_state.verbose == 1)
+    printf(" » SMTP");
+  if (na_state.verbose > 1) {
+    printf(" ╞══════════════════ SMTP ═════════════════\n");
+    if (*msg) {
+      if (atoi((char *)msg) >= 100) {
+        printf(" ├ code      :   %d\n", atoi((char *)msg));
+        printf(" ├ message   :   %s\n", msg + 4);
+      } else if (*msg >= 'A' && *msg <= 'Z') {
+        printf(" ├ message   :   %s\n", msg);
+      } else {
+        printf(" ├ SMTP content (following an other packet due to TCP "
+               "segmentation)\n");
+      }
+    } else {
+      printf(" ├ SMTP content (following an other packet due to TCP "
+             "segmentation)\n");
+    }
+  }
+}

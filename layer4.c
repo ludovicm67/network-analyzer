@@ -27,6 +27,8 @@ void handle_tcp(const u_char *packet) {
     handle_http(packet);
   } else if (src == 443 || dst == 443) {
     handle_https(packet);
+  } else if (src == 25 || dst == 25) {
+    handle_smtp(packet);
   }
 }
 
