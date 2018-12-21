@@ -23,6 +23,10 @@ void handle_tcp(const u_char *packet) {
 
   if (src == 21 || dst == 21) {
     handle_ftp(packet);
+  } else if (src == 80 || dst == 80) {
+    handle_http(packet);
+  } else if (src == 443 || dst == 443) {
+    handle_https(packet);
   }
 }
 
